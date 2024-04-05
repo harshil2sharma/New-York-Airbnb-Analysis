@@ -1,0 +1,295 @@
+
+
+---
+title: " Factors that impact Airbnb review ratings in New York"
+subtitle: "Uncovering Insights: Exploring Airbnb's Presence in NYC with Data Analysis"
+author: 'Harshil'
+date: "BA"
+output:
+  word_document:
+    toc: yes
+    toc_depth: '1'
+  pdf_document:
+    toc: yes
+    toc_depth: 1
+    number_sections: yes
+  html_document:
+    toc: yes
+    toc_depth: '1'
+    df_print: paged
+urlcolor: blue
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      fig.align  = "center")
+```
+
+
+#1  Importing necessary Libraries 
+```{r, results='hide', message=FALSE}
+#importing necessery libraries for future analysis of the dataset
+library(tidyverse)
+library(ggplot2)
+library(scales)
+library(corrplot)
+library(psych)
+library(dplyr)
+```
+
+#2  Importing the data to R studio using the read_csv function.
+
+```{r}
+airbnb_data <- read.csv("airbnb_nyc_clean.csv",header = T)
+
+```
+## ... 
+
+# Data Exploration
+
+```{r}
+#examing head of airbnb_data csv file 
+head(airbnb_data)
+```
+
+
+##### Get the dimensions of the dataset
+```{r}
+#checking amount of rows and columns in given dataset to understand the size we are working with
+dim(airbnb_data)
+
+```
+#### The data set has 48,895 observations and 16 variables
+ 
+
+##### Check if tibble
+```{r}
+is_tibble(airbnb_data)
+```
+##### Force to data frame
+```{r}
+airbnb_data <- as.data.frame(airbnb_data)
+```
+
+##### Explore the structure of the dataframe
+```{r}
+glimpse(airbnb_data)
+```
+
+After loading the dataset in and from the head of AB_2021_NYC dataset we can see a number of things. These 23 columns provide a very rich amount of information for deep data exploration we can do on this dataset. We do not  see some missing values Meaning this data is clean and read foe analysis . Later, we may need to continue with mapping certain values to ones and zeros for predictive analytics. We further explore the variables. We see that neighbourhood_group, neighbourhood, room_type all appear to be categorical variables but they are not structured like so.
+
+### Verify the categorical nature of the perceived categorical variables of interest
+```{r}
+# examining the unique values of neighbourhood_group as this column will appear very handy for later analysis
+length(unique(airbnb_data$neighbourhood_group))
+
+unique(airbnb_data$neighbourhood_group)
+```
+There are 5 different categories of neighbourhood_group
+```{r}
+summary(airbnb_data)
+```
+
+```{r}
+# Examining the unique values of neighbourhood
+length(unique(airbnb_data$neighbourhood))
+
+unique(airbnb_data$neighbourhood)
+```
+There are 239 different categories of neighbourhood
+
+
+```{r}
+# Examining the categorical nature of room_type
+unique(airbnb_data$room_type)
+
+length(unique(airbnb_data$room_type))
+```
+There are 4 categories of room_type
+
+
+## ...
+
+# Data Cleaning
+
+## Filtering only the columns that we will use for this analysis
+```{r}
+airbnb_data%>%
+  select(host_identity_verified,neighbourhood_group,cancellation_policy,room_type,price,service_fee,number_of_reviews,minimum_nights,availability_365,instant_bookable)->airbnb_data1
+
+#cheacking the head of our new dataset 
+head(airbnb_data1)
+```
+We had to drop some columns not only because it is insignificant but also for ethical reasons. There should be no reasoning to continue data exploration and model training (which we will be doing later) towards specific individuals based on their names. Why is that? Those names are assigned to actual humans, also they present no security threat or military/governmental interest based on the nature of the dataset, therefore names are unimportant to us
+
+
+```{r select only numerical columns}
+airbnb_data1%>%
+  select(price,number_of_reviews,minimum_nights,service_fee,availability_365)->airbnb_data2
+
+head(airbnb_data2)
+
+
+```
+
+```{r}
+ ##Check for missing values
+sum(is.na(airbnb_data2))
+```
+
+#  Data Visualisation
+
+Exploring the data by analyzing its statistics and visualizing the values of features and correlations between different features. Explaining the process and the results
+
+#### Neighbourhood groups by number of room postings
+```{r}
+airbnb_data %>% 
+  ggplot(aes(x = neighbourhood_group)) +
+  geom_bar(fill = "maroon", color = "yellow") +
+  labs(
+    title = "Neighbour hood groups by number of postings",
+    x = "Neighbourhood Groups"
+  ) +
+  theme_classic()
+```
+Manhattan has the highest number of room postings, followed by Brooklyn with Staten Island having the least postings. This could mean that there are many houses in Manhattan or the condition of the houses are better than the others but this is not something we can infer by looking at the chart.
+
+```{r}
+
+airbnb_data %>% 
+  ggplot(aes(x = neighbourhood_group)) +
+  geom_bar(aes(fill = room_type), position = "dodge", width = 0.8) +
+  labs(
+    title = "Neighbourhood groups according by room type",
+    x = "Neighbourhood Group",
+    y = "Count"
+  ) +
+  theme_bw()
+```
+An Entire home/apt is more common in Manhattan than Private room which could infer that people possibly prefer to rent entire home/apt compared to other room types. However, this is not sufficient to answer this question. 
+Shared room is generally low at all the neighbourhood groups. Now, let's see how these neighbourhood groups fare based on prices.
+
+
+Descriptive Analytics 
+
+```{r}
+summary(airbnb_data2)
+
+```
+
+
+```{r}
+describe(airbnb_data2)
+
+```
+
+ Correlation Analysis.
+ 
+```{r}
+airbnb_data1.mat<- as.matrix(airbnb_data2)
+```
+ 
+ 
+```{r}
+airbnb_data1.cor <- cor(airbnb_data1.mat)
+corrplot(airbnb_data1.cor, order = "hclust", method = "number")
+
+```
+ 
+
+
+     Descriptive Analytics: Normality 
+     For the Response variable number of reviews
+```{r}
+par(mfrow = c(1, 2))
+hist(airbnb_data2$number_of_reviews, main = "Reviews Histogram", xlab = "Number of Reviews")
+qqnorm(airbnb_data2$number_of_reviews, main = "Review  QQ plot")
+qqline(airbnb_data2$number_of_reviews)
+
+```
+
+Number of reviews vs price  Scatter plot
+
+```{r}
+plot(airbnb_data2$number_of_reviews,airbnb_data2$price)
+
+
+```
+number of reviews vs minimum nights
+```{r}
+plot(airbnb_data2$number_of_reviews,airbnb_data2$minimum_nights)
+
+```
+Hypothesis Testing
+
+```{r}
+instant <- subset(airbnb_data, instant_bookable == "True")
+not_instant <- subset(airbnb_data, instant_bookable == "False")
+
+t.test(instant$review_rate_number, not_instant$review_rate_number)
+
+#at 95% conifdence level 
+t.test(instant$review_rate_number, not_instant$review_rate_number, conf.level = 0.95)$conf.int
+```
+Boxplots and ANOV 
+```{r}
+par(mfrow = c(1, 2))
+boxplot(number_of_reviews~instant_bookable , data = airbnb_data1, main = "by instant booking")
+boxplot(number_of_reviews ~cancellation_policy , data = airbnb_data1, main = " by cancellation_policy")
+
+```
+ 
+
+
+Fitting the OLS Regression model (initial set of predictors)
+```{r}
+lm.fit.model<-lm(number_of_reviews~.,data = airbnb_data1)
+summary(lm.fit.model)
+```
+OLS Assumption Test
+Residual plot
+```{r}
+plot(lm.fit.model, which = 2)
+```
+
+ Now inspect the model for heteroskedasticity
+```{r}
+plot(lm.fit.model,which=1)
+```
+ 
+```{r}
+library(lmtest)
+bptest(lm.fit.model,data=Salaries)
+```
+ The first residual plot clearly shows that the error variance is not even, suggesting that heteroskedasticity may be present. The BP test is also significant, providing evidence of the presence of heteroskedasticity
+## ..
+
+#Given that the residuals of the OLS model are heteroskedastic, fit a Weighted Least Squares WLS model
+```{r}
+abs.res<-abs(residuals(lm.fit.model))
+fitted.ols<-fitted(lm.fit.model)
+
+```
+
+#fit a linear model to predict abs.res with fitted.ols as the predictor
+```{r}
+lm.abs.res<-lm(abs.res~fitted.ols)
+ #plotting fitted.ols (horizontal axis) against abs.res (vertical axis) and layer the lm.abs.res regression line on top
+plot(fitted.ols, abs.res) 
+abline(lm.abs.res, col="red") 
+```
+
+```{r}
+wts <- 1/fitted(lm.abs.res)^2
+wts[1:10]
+```
+#fit a WLS model 
+```{r}
+fit.wls<-lm(number_of_reviews~.,weight=wts,data = airbnb_data1)
+summary(fit.wls)
+```
+
+
+
+
+
+
